@@ -1,7 +1,9 @@
 // src/routes/api/schedule-notification/+server.js
 import { json } from '@sveltejs/kit';
 import { kv } from '@vercel/kv';
-import { zonedTimeToUtc } from 'date-fns-tz/esm'; // <-- HÄR ÄR FIXEN
+// Importera de nya funktionerna
+import { toDate } from 'date-fns-tz';
+import { getUnixTime } from 'date-fns';
 
 export async function POST({ request }) {
     const { userKey, title, message, spelstopp } = await request.json();
@@ -12,10 +14,23 @@ export async function POST({ request }) {
 
     try {
         const timeZone = 'Europe/Stockholm';
-        const eventDateInUtc = zonedTimeToUtc(spelstopp, timeZone);
-        const fiveMinutesInMillis = 5 * 60 * 1000;
-        const notifyTimestamp = Math.floor((eventDateInUtc.getTime() - fiveMinutesInMillis) / 1000);
+        
+        // Konvertera `spelstopp` från svensk tid till ett korrekt Date-objekt
+        const eventDate = toDate(spelstopp, { timeZone });
 
+        // Beräkna när notisen ska skickas (5 min innan)
+        const fiveMinutesInMillis = 5 * 60 * 1000;
+        const notifyDate = new Date(eventDate.getTime() - fiveMinutesInMillis);
+        
+        // Konvertera till Unix timestamp i sekunder
+        const notifyTimestamp = getUnixTime(notifyDate);
+
+        // Säkerhetskoll
+        const nowTimestamp = getUnixTime(new Date());
+        if (notifyTimestamp <= nowTimestamp) {
+            return json({ success: false, error: 'Spelstopp är för nära i tiden eller har redan passerat.' }, { status: 400 });
+        }
+        
         const uniqueId = Math.random().toString(36).substring(2, 9);
         const key = `pushover_notis:${notifyTimestamp}:${uniqueId}`;
         
