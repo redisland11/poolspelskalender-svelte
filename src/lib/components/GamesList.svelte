@@ -42,7 +42,7 @@
 		}
 
 		try {
-			// === HÄR ÄR DEN KORRIGERADE RADEN ===
+			// SÄKERSTÄLL ATT DENNA RAD ANROPAR /api/schedule-notification
 			const response = await fetch('/api/schedule-notification', {
 				method: 'POST',
 				body: JSON.stringify({
@@ -55,13 +55,12 @@
 			});
 
 			if (!response.ok) {
-				// Försök att läsa felmeddelandet som JSON, men ha en fallback om det är HTML
-				let errorMsg = 'Okänt serverfel';
+				let errorMsg = `Servern svarade med status ${response.status}`;
 				try {
 					const errorData = await response.json();
 					errorMsg = errorData.error || errorMsg;
 				} catch (e) {
-					errorMsg = `Servern svarade med status ${response.status}`;
+					// Lämna kvar den generiska om JSON-parsning misslyckas
 				}
 				throw new Error(errorMsg);
 			}
