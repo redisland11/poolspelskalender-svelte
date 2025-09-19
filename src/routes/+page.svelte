@@ -40,6 +40,7 @@
 		isLoading = false;
 	});
 
+    
 	$: {
 		if (!isLoading) {
 			const now = new Date();
