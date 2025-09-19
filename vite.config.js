@@ -1,7 +1,7 @@
 // vite.config.js
 import tailwindcss from '@tailwindcss/vite'; // Din befintliga import
 import { sveltekit } from '@sveltejs/kit/vite';
-import { SvelteKitPWA } from '@vite-plugin-pwa'; // Den nya importen för PWA
+import { SvelteKitPWA } from '@vite-pwa/sveltekit'; // Den nya importen för PWA
 import { defineConfig } from 'vite';
 
 export default defineConfig({
