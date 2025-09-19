@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
-	import { fetchAllGames } from '$lib/api.js'; // `fetchGameDetails` behövs inte här längre
+	// IMPORTERA `fetchGameDetails` IGEN
+	import { fetchAllGames, fetchGameDetails } from '$lib/api.js';
 
 	// Importera dina UI-komponenter
 	import Filters from '$lib/components/Filters.svelte';
@@ -15,17 +16,14 @@
 	let selectedGameDetails = null;
 	let isDetailsLoading = false;
 
-	// === NY KOD: State för globala notiser ===
 	let scheduledNotifications = new Set();
-	// ==========================================
 
-	let selectedGameTypes = ['stryktipset', 'europatipset', 'topptipsetfamily', 'powerplay', 'bomben', 'matchen', 'challenge']; // Alla valda som default
+	let selectedGameTypes = ['stryktipset', 'europatipset', 'topptipsetfamily', 'powerplay', 'bomben', 'matchen', 'maltipset', 'challenge'];
 	let onlyJackpot = false;
 	let timeSpanHours = null;
 	let turnoverRange = { min: 10000, max: 100000000 };
 
 	onMount(async () => {
-		// Ladda både spelen och status för notiser samtidigt
 		const [gamesData, notificationStatus] = await Promise.all([
 			fetchAllGames(Object.keys(spelInfoMap)),
 			fetch('/api/notification-status').then((res) => res.json())
@@ -40,7 +38,6 @@
 		isLoading = false;
 	});
 
-    
 	$: {
 		if (!isLoading) {
 			const now = new Date();
@@ -65,17 +62,26 @@
 		turnoverRange = newFilters.turnoverRange;
 	}
 
+	// === HÄR ÄR DEN KORRIGERADE FUNKTIONEN ===
 	async function handleGameSelect(event) {
-		selectedGameDetails = event.detail;
-	}
+		const selectedGame = event.detail;
 
-	// === NY KOD: Funktion för att uppdatera notislistan ===
+		if (!selectedGame) {
+			selectedGameDetails = null;
+			return;
+		}
+
+		isDetailsLoading = true;
+		// Denna rad saknades - anropet som hämtar den detaljerade kupongen
+		selectedGameDetails = await fetchGameDetails(selectedGame);
+		isDetailsLoading = false;
+	}
+	
 	function handleNotificationScheduled(event) {
 		const drawNumber = event.detail;
 		scheduledNotifications.add(drawNumber);
-		scheduledNotifications = scheduledNotifications; // Tvinga Svelte att uppdatera
+		scheduledNotifications = scheduledNotifications;
 	}
-	// ======================================================
 
     const spelInfoMap = {
         "bomben": {}, "challenge": {}, "europatipset": {}, "fulltraff": {}, "matchen": {},
