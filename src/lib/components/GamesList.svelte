@@ -1,14 +1,12 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
 
-	// Ta emot den centrala listan som en "prop"
 	export let data = [];
 	export let scheduledNotifications = new Set();
 
 	const dispatch = createEventDispatcher();
 
 	function handleRowClick(game) {
-		// Skickar det valda spelet upp till föräldern (+page.svelte)
 		dispatch('select', game);
 	}
 
@@ -22,11 +20,7 @@
 		let dayName = '';
 		const gameDateOnly = new Date(gameDate.getFullYear(), gameDate.getMonth(), gameDate.getDate());
 		const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-		const tomorrowDateOnly = new Date(
-			tomorrow.getFullYear(),
-			tomorrow.getMonth(),
-			tomorrow.getDate()
-		);
+		const tomorrowDateOnly = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
 
 		if (gameDateOnly.getTime() === todayDateOnly.getTime()) {
 			dayName = 'Idag';
@@ -48,7 +42,7 @@
 		}
 
 		try {
-			// Anropa vår nya slutpunkt för att spara/schemalägga notisen
+			// === HÄR ÄR DEN KORRIGERADE RADEN ===
 			const response = await fetch('/api/schedule-notification', {
 				method: 'POST',
 				body: JSON.stringify({
@@ -61,14 +55,21 @@
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.error || 'Okänt serverfel');
+				// Försök att läsa felmeddelandet som JSON, men ha en fallback om det är HTML
+				let errorMsg = 'Okänt serverfel';
+				try {
+					const errorData = await response.json();
+					errorMsg = errorData.error || errorMsg;
+				} catch (e) {
+					errorMsg = `Servern svarade med status ${response.status}`;
+				}
+				throw new Error(errorMsg);
 			}
 
 			alert(`Påminnelse skapad för ${game.spel}!`);
-
-			// Uppdatera knappens färg direkt
+			
 			dispatch('notificationScheduled', game.drawNumber);
+
 		} catch (error) {
 			alert(`Kunde inte skapa påminnelse: ${error.message}`);
 			console.error('Fetch error:', error);
