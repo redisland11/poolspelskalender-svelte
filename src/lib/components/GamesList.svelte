@@ -45,13 +45,16 @@
 
 		try {
 			// Steg 1: Försök skapa Pushover-notisen
+			const dateObject = new Date(game.spelstopp);
+			const fiveMinutesBefore = new Date(dateObject.getTime() - 5 * 60000);	
+			const unixTimestampInSeconds = Math.floor(fiveMinutesBefore.getTime() / 1000);		
 			const pushoverResponse = await fetch('/api/send-notification', {
 				method: 'POST',
 				body: JSON.stringify({
 					userKey: userKey,
 					title: game.spel,
 					message: `Startar om 5 minuter kl ${game.spelstopp.substring(11, 16)}`,
-					spelstopp: game.spelstopp
+					timestamp: unixTimestampInSeconds
 				}),
 				headers: { 'Content-Type': 'application/json' }
 			});
@@ -74,7 +77,7 @@
 			dispatch('notificationScheduled', game.drawNumber);
 
 		} catch (error) {
-			alert(`Kunde inte skapa påminnelse: ${error.message}`);
+			alert(`Kunde inte skapa påminnelse: ${unixTimestampInSeconds} ${error.message}`);
 			console.error('Fetch error:', error);
 		}
 	}
