@@ -1,24 +1,23 @@
-// src/routes/api/trigger-notifications/+server.js
 import { json } from '@sveltejs/kit';
-import { createClient } from '@vercel/kv'; // Ändrad import
-import { env } from '$env/dynamic/private'; // Ändrad import
+import { createClient } from 'redis';
+import { env } from '$env/dynamic/private';
 
 export async function GET() {
-    // Manuell anslutning till databasen
-    const kv = createClient({
-        url: env.REDIS_URL
-    });
+    const client = createClient({ url: env.REDIS_URL });
+    await client.connect();
 
     try {
         const nowTimestamp = Math.floor(Date.now() / 1000);
-        const keys = await kv.keys('pushover_notis:*');
+        const keys = await client.keys('pushover_notis:*');
         const notificationsToSend = [];
+        const keysToDelete = [];
 
         for (const key of keys) {
             const timestamp = parseInt(key.split(':')[1], 10);
             if (timestamp <= nowTimestamp) {
-                const notisData = await kv.get(key);
-                if (notisData) {
+                const notisDataString = await client.get(key);
+                if (notisDataString) {
+                    const notisData = JSON.parse(notisDataString);
                     notificationsToSend.push(
                         fetch("https://api.pushover.net/1/messages.json", {
                             method: 'POST',
@@ -32,13 +31,20 @@ export async function GET() {
                         })
                     );
                 }
-                await kv.del(key);
+                keysToDelete.push(key);
             }
+        }
+        
+        if (keysToDelete.length > 0) {
+            await client.del(keysToDelete);
         }
 
         await Promise.all(notificationsToSend);
+        await client.quit();
         return json({ success: true, sent: notificationsToSend.length });
+
     } catch (error) {
+        await client.quit();
         console.error("Cron job error:", error);
         return json({ success: false, error: error.message }, { status: 500 });
     }
