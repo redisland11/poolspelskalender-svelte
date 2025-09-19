@@ -84,11 +84,6 @@
     };
 </script>
 
-<GamesList 
-    data={filteredGames} 
-    on:select={handleGameSelect}
-    bind:scheduledNotifications={scheduledNotifications} on:notificationScheduled={handleNotificationScheduled} />
-
 <div class="min-h-screen bg-gray-600 bg-[url('/45-degree-fabric-dark.png')] text-gray-800">
 	<header class="bg-[#a00813] bg-[url('/45-degree-fabric-dark.png')] text-white text-center py-4 shadow-lg">
 		<h1 class="text-6xl font-['Permanent_Marker'] select-none">
