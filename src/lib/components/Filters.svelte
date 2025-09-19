@@ -6,6 +6,19 @@
 	 */
 	export let initialValues = {};
 
+    let userKey = '';
+
+	// När komponenten laddas, försök hämta en sparad nyckel från webbläsarens minne
+	onMount(() => {
+		userKey = localStorage.getItem('pushoverUserKey') || '';
+	});
+
+	// Funktion som sparar nyckeln i webbläsarens minne
+	function saveKey() {
+		localStorage.setItem('pushoverUserKey', userKey);
+		alert('Pushover-nyckel sparad!');
+	}
+
 	// --- LOKAL STATE ---
 	// Dessa variabler håller de aktuella värdena för varje filter-kontroll.
 	let selectedGameTypes = ['stryktipset', 'europatipset', 'topptipsetfamily', 'powerplay', 'bomben', 'matchen', 'challenge']; // Alla valda som default
@@ -78,6 +91,7 @@
 	];
 </script>
 
+
 <details class="bg-gray-800/50 text-white rounded-lg shadow-md open:ring-2 open:ring-blue-400">
 	<summary class="cursor-pointer p-4 text-xl font-bold list-none">
 		Välj vilka spel som ska visas
@@ -140,7 +154,6 @@
                     </select>
                 </div>
             </div>
-
 		</div>
 
 		<div class="space-y-4">
@@ -154,5 +167,29 @@
                 </label>
             </div>
 		</div>
-	</div>
+
+        <hr class="md:col-span-3 my-4 border-gray-500" />
+        <div class="md:col-span-3 space-y-2">
+            <h3 class="font-bold text-lg">Notis-inställningar (Pushover)</h3>
+            <p class="text-sm text-gray-300">
+                Fyll i din "User Key" från Pushover för att kunna skapa påminnelser.
+            </p>
+            <div class="flex items-center space-x-2">
+                <label for="pushover-key" class="sr-only">Pushover User Key</label>
+                <input
+                    id="pushover-key"
+                    type="text"
+                    bind:value={userKey}
+                    placeholder="Klistra in din User Key här..."
+                    class="form-input flex-grow bg-gray-700 border-gray-500 rounded-md focus:ring-blue-500 focus:border-blue-500 text-white"
+                />
+                <button
+                    on:click={saveKey}
+                    class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700"
+                >
+                    Spara
+                </button>
+            </div>
+        </div>
+        </div>
 </details>

@@ -1,6 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
-	import { fetchAllGames, fetchGameDetails } from '$lib/api.js';
+	import { fetchAllGames } from '$lib/api.js'; // `fetchGameDetails` behövs inte här längre
 
 	// Importera dina UI-komponenter
 	import Filters from '$lib/components/Filters.svelte';
@@ -8,45 +8,47 @@
 	import GamesList from '$lib/components/GamesList.svelte';
 	import GameDetails from '$lib/components/GameDetails.svelte';
 
-	// --- STATE MANAGEMENT ---
-	// Här lagrar vi all data som appen behöver.
-	// När dessa variabler ändras, uppdateras gränssnittet automatiskt.
+	let allGames = [];
+	let filteredGames = [];
+	let isLoading = true;
 
-	let allGames = []; // Hela listan med spel från API:et
-	let filteredGames = []; // Listan som visas efter filtrering
-	let isLoading = true; // För att visa en laddningsindikator i början
+	let selectedGameDetails = null;
+	let isDetailsLoading = false;
 
-	// State för detaljvyn
-	let selectedGameDetails = null; // Håller information om det valda spelet
-	let isDetailsLoading = false; // Laddningsindikator för detaljvyn
+	// === NY KOD: State för globala notiser ===
+	let scheduledNotifications = new Set();
+	// ==========================================
 
-	// --- FILTER-VARIABLER ---
-	// Dessa håller de aktuella värdena från filter-komponenten.
-	let selectedGameTypes = ['stryktipset', 'europatipset', 'topptipsetfamily', 'powerplay', 'bomben', 'matchen', 'challenge']; // Startvärden
+	let selectedGameTypes = ['stryktipset', 'europatipset', 'topptipsetfamily', 'powerplay', 'bomben', 'matchen', 'challenge']; // Alla valda som default
 	let onlyJackpot = false;
-	let timeSpanHours = null; // null = alla, annars 3 eller 24
-	let turnoverRange = { min: 10000, max: 100000000 }; // Startvärden
+	let timeSpanHours = null;
+	let turnoverRange = { min: 10000, max: 100000000 };
 
-	// --- DATA HÄMTNING ---
-	// `onMount` körs en gång när komponenten först renderas i webbläsaren.
 	onMount(async () => {
-		allGames = await fetchAllGames(Object.keys(spelInfoMap)); // Hämta alla möjliga spel för bästa filtrering
+		// Ladda både spelen och status för notiser samtidigt
+		const [gamesData, notificationStatus] = await Promise.all([
+			fetchAllGames(Object.keys(spelInfoMap)),
+			fetch('/api/notification-status').then((res) => res.json())
+		]);
+
+		allGames = gamesData;
+
+		if (notificationStatus.success) {
+			scheduledNotifications = new Set(notificationStatus.scheduledIds);
+		}
+
 		isLoading = false;
 	});
 
-	// --- REAKTIVITET (APPENS HJÄRNA) ---
-	// `$:`-blocket körs om automatiskt VARJE gång en variabel inuti det ändras.
-	// Detta ersätter helt behovet av `observeEvent` och `reactive()` från Shiny.
 	$: {
 		if (!isLoading) {
 			const now = new Date();
-
 			filteredGames = allGames
 				.filter((game) => selectedGameTypes.includes(game.spelURL))
 				.filter((game) => (onlyJackpot ? game.isJackpot : true))
 				.filter((game) => game.omsattningNum >= turnoverRange.min && game.omsattningNum <= turnoverRange.max)
 				.filter((game) => {
-					if (!timeSpanHours) return true; // Om null, visa alla
+					if (!timeSpanHours) return true;
 					const gameTime = new Date(game.spelstopp);
 					const hoursDiff = (gameTime - now) / (1000 * 60 * 60);
 					return hoursDiff > 0 && hoursDiff <= timeSpanHours;
@@ -54,13 +56,6 @@
 		}
 	}
 
-	// --- EVENT HANDLERS ---
-	// Dessa funktioner anropas när barn-komponenterna skickar "events".
-
-	/**
-	 * Tar emot nya filtervärden från Filters.svelte och uppdaterar state.
-	 * Detta kommer automatiskt att trigga det reaktiva `$: `-blocket ovan.
-	 */
 	function handleFilterChange(event) {
 		const newFilters = event.detail;
 		selectedGameTypes = newFilters.selectedGameTypes;
@@ -69,32 +64,29 @@
 		turnoverRange = newFilters.turnoverRange;
 	}
 
-	/**
-	 * Tar emot ett valt spel från Timeline.svelte eller GamesList.svelte.
-	 * Hämtar detaljerad information och skickar ner den till GameDetails.svelte.
-	 */
 	async function handleGameSelect(event) {
-		const selectedGame = event.detail;
-
-		if (!selectedGame) {
-			selectedGameDetails = null;
-			return;
-		}
-
-		isDetailsLoading = true;
-		selectedGameDetails = await fetchGameDetails(selectedGame);
-		isDetailsLoading = false;
+		selectedGameDetails = event.detail;
 	}
 
-    // Dummy-data för spelInfoMap tills vi flyttar det till en central plats
-    // Detta behövs för att onMount ska kunna hämta alla spel
+	// === NY KOD: Funktion för att uppdatera notislistan ===
+	function handleNotificationScheduled(event) {
+		const drawNumber = event.detail;
+		scheduledNotifications.add(drawNumber);
+		scheduledNotifications = scheduledNotifications; // Tvinga Svelte att uppdatera
+	}
+	// ======================================================
+
     const spelInfoMap = {
         "bomben": {}, "challenge": {}, "europatipset": {}, "fulltraff": {}, "matchen": {},
         "maltipset": {}, "powerplay": {}, "stryktipset": {}, "topptipsetfamily": {},
         "big9": {}, "DD": {}, "V4": {}, "V5": {}, "V64": {}, "V65": {}, "V75": {}, "V86": {}
     };
-
 </script>
+
+<GamesList 
+    data={filteredGames} 
+    on:select={handleGameSelect}
+    bind:scheduledNotifications={scheduledNotifications} on:notificationScheduled={handleNotificationScheduled} />
 
 <div class="min-h-screen bg-gray-600 bg-[url('/45-degree-fabric-dark.png')] text-gray-800">
 	<header class="bg-[#a00813] bg-[url('/45-degree-fabric-dark.png')] text-white text-center py-4 shadow-lg">
