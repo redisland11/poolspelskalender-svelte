@@ -1,9 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
-	// IMPORTERA `fetchGameDetails` IGEN
 	import { fetchAllGames, fetchGameDetails } from '$lib/api.js';
 
-	// Importera dina UI-komponenter
 	import Filters from '$lib/components/Filters.svelte';
 	import Timeline from '$lib/components/Timeline.svelte';
 	import GamesList from '$lib/components/GamesList.svelte';
@@ -18,7 +16,7 @@
 
 	let scheduledNotifications = new Set();
 
-	let selectedGameTypes = ['stryktipset', 'europatipset', 'topptipsetfamily', 'powerplay', 'bomben', 'matchen', 'maltipset', 'challenge'];
+	let selectedGameTypes = ['stryktipset', 'europatipset', 'topptipsetfamily', 'powerplay', 'bomben'];
 	let onlyJackpot = false;
 	let timeSpanHours = null;
 	let turnoverRange = { min: 10000, max: 100000000 };
@@ -62,24 +60,22 @@
 		turnoverRange = newFilters.turnoverRange;
 	}
 
-	// === HÄR ÄR DEN KORRIGERADE FUNKTIONEN ===
 	async function handleGameSelect(event) {
 		const selectedGame = event.detail;
-
 		if (!selectedGame) {
 			selectedGameDetails = null;
 			return;
 		}
-
 		isDetailsLoading = true;
-		// Denna rad saknades - anropet som hämtar den detaljerade kupongen
 		selectedGameDetails = await fetchGameDetails(selectedGame);
 		isDetailsLoading = false;
 	}
 	
 	function handleNotificationScheduled(event) {
 		const drawNumber = event.detail;
-		scheduledNotifications.add(drawNumber);
+		// === FIXEN ÄR HÄR: Se till att vi lägger till en STRÄNG ===
+		scheduledNotifications.add(String(drawNumber));
+		// Tvinga Svelte att uppdatera UI
 		scheduledNotifications = scheduledNotifications;
 	}
 
@@ -119,7 +115,13 @@
 			<div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
 				<div class="bg-white/90 p-4 rounded-lg shadow-md">
 					<h2 class="text-2xl font-bold mb-3">Lista över valda spel</h2>
-					<GamesList data={filteredGames} on:select={handleGameSelect} />
+					
+					<GamesList 
+						data={filteredGames} 
+						on:select={handleGameSelect}
+						scheduledNotifications={scheduledNotifications}
+						on:notificationScheduled={handleNotificationScheduled}
+					/>
 				</div>
 
 				<div class="bg-white/90 p-4 rounded-lg shadow-md">
