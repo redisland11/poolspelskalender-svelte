@@ -18,7 +18,7 @@
 		const options = {
 			stack: true,
 			stackSubgroups: true,
-			zoomable: false,
+			zoomable: true,
 			editable: false,
 			margin: {
 				item: 10,
@@ -30,10 +30,7 @@
 			max: new Date(new Date().getTime() + 14 * 24 * 60 * 60 * 1000),
 
 			// === NYA INSTÄLLNINGAR FÖR TIDS-AXELN ===
-			timeAxis: {
-				scale: 'hour',
-				step: 6
-			},
+
 			format: {
 				minorLabels: {
 					hour: 'HH:mm' // Visa "18:00"

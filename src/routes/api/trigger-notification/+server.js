@@ -1,3 +1,4 @@
+// src/routes/api/trigger-notifications/+server.js
 import { json } from '@sveltejs/kit';
 import { createClient } from 'redis';
 import { env } from '$env/dynamic/private';
@@ -34,7 +35,7 @@ export async function GET() {
                 keysToDelete.push(key);
             }
         }
-        
+
         if (keysToDelete.length > 0) {
             await client.del(keysToDelete);
         }
